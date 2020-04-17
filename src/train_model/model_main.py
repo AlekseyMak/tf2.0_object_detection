@@ -25,6 +25,7 @@ import tensorflow as tf
 from models.base_models.research.object_detection import model_hparams
 from models.base_models.research.object_detection import model_lib
 
+
 flags.DEFINE_string(
     'model_dir', None, 'Path to output model directory '
     'where event and checkpoint files will be written.')
@@ -53,18 +54,25 @@ flags.DEFINE_boolean(
     'run_once', False, 'If running in eval-only mode, whether to run just '
     'one round of eval vs running continuously (default).'
 )
+
 FLAGS = flags.FLAGS
 
 
 def main(unused_argv):
+  model_dir = "training/"
+  pipeline_config = '../../data/faces/faster_rcnn_inception_v2_coco_faces.config'
+  FLAGS.alsologtostderr=True
+
   flags.mark_flag_as_required('model_dir')
   flags.mark_flag_as_required('pipeline_config_path')
-  config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir)
+  # config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir)
+  config = tf.estimator.RunConfig(model_dir=model_dir)
 
   train_and_eval_dict = model_lib.create_estimator_and_inputs(
       run_config=config,
       hparams=model_hparams.create_hparams(FLAGS.hparams_overrides),
-      pipeline_config_path=FLAGS.pipeline_config_path,
+      # pipeline_config_path=FLAGS.pipeline_config_path,
+      pipeline_config_path=pipeline_config,
       train_steps=FLAGS.num_train_steps,
       sample_1_of_n_eval_examples=FLAGS.sample_1_of_n_eval_examples,
       sample_1_of_n_eval_on_train_examples=(
@@ -107,3 +115,4 @@ def main(unused_argv):
 
 if __name__ == '__main__':
   tf.app.run()
+# main(None)

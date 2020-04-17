@@ -1,4 +1,4 @@
-import os
+import os, io
 import time
 import numpy as np
 from matplotlib import pyplot as plt
@@ -7,7 +7,7 @@ import random
 import json
 
 from src.converters import JsonConverter
-from src.quickdraw.parse_qd import convert_sharded
+from src.quickdraw.parse_qd import ShardedTFRecordConverter
 
 MAX_LINES = 20
 
@@ -128,6 +128,13 @@ class ImageGenerator:
 
 BASE_IMAGE_SIZE = 100
 OBJECT_SIZE = 28
+LABEL = 'face'
+
+
+def pil_image_to_bytes(pil_image):
+    imgByteArr = io.BytesIO()
+    pil_image.save(imgByteArr, format='JPEG')
+    return imgByteArr.getvalue()
 
 
 def place_face(base_img, face):
@@ -135,76 +142,78 @@ def place_face(base_img, face):
     obj_x = np.random.randint(0, BASE_IMAGE_SIZE - OBJECT_SIZE)
     obj_y = np.random.randint(0, BASE_IMAGE_SIZE - OBJECT_SIZE)
     for i, px in enumerate(face):
-        col = int(i / 28)
-        row = i % 28
+        col = int(i / OBJECT_SIZE)
+        row = i % OBJECT_SIZE
         pixels[row + obj_y, col + obj_x] = int(px)
-    return base_img, obj_x, obj_y
+    return base_img, obj_x / BASE_IMAGE_SIZE, obj_y / BASE_IMAGE_SIZE
 
 
-def load_img(face, image_id, output_file):
+def load_img(face, image_id, converter, is_test=False):
     img_generator = ImageGenerator()
     generated, img_id = img_generator.generate_image(image_id, save=False)
     generated, bb_box_x, bb_box_y = place_face(generated, face)
     # output_file='../data/faces/train_img_face_{}.jpg'.format(img_id)
     # generated.save(output_file)
-    s = generated.tobytes().decode("latin1")
+    rgbimg = Image.new("RGB", generated.size)
+    rgbimg.paste(generated)
+    if is_test:
+        rgbimg.save('../data/faces/test/test_face_{}.jpg'.format(img_id))
+        return
+    # s = rgbimg.tobytes().decode("latin1")
     result = {
         "id":str(img_id),
         "category": "face",
-        "bb_box_x": bb_box_x,
-        "bb_box_y": bb_box_y,
-        "bb_box_size": OBJECT_SIZE,
-        "width": 100,
-        "height": 100,
-        "img": s,
+        "bb_box_xmin": bb_box_x,
+        "bb_box_xmax": bb_box_x + OBJECT_SIZE / BASE_IMAGE_SIZE,
+        "bb_box_ymin": bb_box_y,
+        "bb_box_ymax": bb_box_y + OBJECT_SIZE / BASE_IMAGE_SIZE,
+        "width": BASE_IMAGE_SIZE,
+        "height": BASE_IMAGE_SIZE,
+        "img":pil_image_to_bytes(rgbimg)
     }
-    with open(output_file, "a") as file:
-        json.dump(result, file)
-        print('', file = file)
+    converter.convert_sharded(result, img_id)
+    # with open(output_file, "a") as file:
+    #     json.dump(result, file)
+    #     print('', file = file)
 
 
-output = "../data/faces/validation/output.ndjson"
-total = 1000
+def prepare_dataset():
+    train_size = 10000
+    validation_size = 1000
+    test_size = 100
 
-def make_ndjson():
     images = np.load('../data/quick_draw/full_numpy_bitmap_face.npy')
     rng = np.random.default_rng()
-    # picked_faces = np.random.choice(images, 10)
+    total_size = images.size
 
-    try:
-        os.remove(output)
-    except:
-        print("Error while deleting file ", output)
-    with open(output, 'tw', encoding='utf-8') as f:
-        pass
+    total_generation_size = train_size + validation_size + test_size
 
-    for i in range(total):
-        load_img(rng.choice(images), i, output)
+    converter = JsonConverter()
+
+    # train_indexes = rng.choice(images[:train_size], train_size)
+    sharded_converter = ShardedTFRecordConverter('../data/faces/{}'.format("train"), LABEL, converter)
+    for i in range(train_size):
+        load_img(images[i], i, sharded_converter)
         if i % 100 == 0:
-            print("Progress: {}%".format(i / total))
+            print("Progress: {}".format(i / total_generation_size))
 
+    sharded_converter = ShardedTFRecordConverter('../data/faces/{}'.format("validation"), LABEL, converter)
+    for i in range(validation_size):
+        load_img(images[i + train_size], i, sharded_converter)
+        if (i + train_size) % 100 == 0:
+            print("Progress: {}".format((i + train_size) / total_generation_size))
+
+    for i in range(test_size):
+        load_img(images[i + train_size + validation_size], i, sharded_converter, is_test=True)
+        if (i + train_size + validation_size) % 100 == 0:
+            print("Progress: {}".format((i + train_size + validation_size) / total_generation_size))
 
 def plot_img(img):
     plt.imshow(img, cmap='gray')
     plt.show()
 
 
-def debug_view():
-    with open(output, 'r', encoding='utf-8') as f:
-        for line in f:
-            img_json = json.loads(line)
-            img = bytes(img_json['img'], 'latin1')
-            image = Image.frombytes('L', (100, 100), img, 'raw')
-            image.show()
-
-
-def make_tf_records():
-    with open(output, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-        converter = JsonConverter()
-        convert_sharded(lines[:-1], '../data/faces/validation', 'face', converter)
-
-make_ndjson()
-make_tf_records()
+prepare_dataset()
+# make_tf_records()
 
 

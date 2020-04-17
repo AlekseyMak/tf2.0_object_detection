@@ -27,20 +27,24 @@ def convert(input, label, converter):
     writer.close()
 
 
-def convert_sharded(input, output, label, converter):
-    num_shards = 10
-    output_filebase = "{}/sharded_{}.record".format(output, label)
+class ShardedTFRecordConverter:
 
-    with contextlib2.ExitStack() as tf_record_close_stack:
-        output_tfrecords = open_sharded_output_tfrecords(
-            tf_record_close_stack, output_filebase, num_shards)
+    def __init__(self, output, label, converter):
+        self.label = label
+        self.num_shards = 10
+        self.output_filebase = "{}/sharded_{}.record".format(output, label)
+        self.tf_record_close_stack = contextlib2.ExitStack()
+        self.output_tfrecords = open_sharded_output_tfrecords(
+            self.tf_record_close_stack, self.output_filebase, self.num_shards)
+        self.converter = converter
 
-        for index, img in enumerate(input):
-            # tf_example = build_tf_record(img.tobytes(), "{}_{}_img".format(index, label), label)
-            tf_example = converter.convert(img)
-            output_shard_index = index % num_shards
-            output_tfrecords[output_shard_index].write(tf_example.SerializeToString())
+    def convert_sharded(self, input, index):
+        tf_example = self.converter.convert(input)
+        output_shard_index = index % self.num_shards
+        self.output_tfrecords[output_shard_index].write(tf_example.SerializeToString())
 
+    def close(self):
+        self.tf_record_close_stack.close()
 
 # convert('../../data/quick_draw/full_numpy_bitmap_face.npy', 'face')
 # convert('../../data/quick_draw/full_numpy_bitmap_leg.npy', 'leg')
