@@ -25,18 +25,18 @@ utils_ops.tf = tf.compat.v1
 tf.gfile = tf.io.gfile
 
 def load_model(model_name):
-  # base_url = 'http://download.tensorflow.org/models/object_detection/'
-  # model_file = model_name + '.tar.gz'
-  # print(model_file)
-  # model_dir = tf.keras.utils.get_file(
-  #   fname=model_name,
-  #   origin=base_url + model_file,
-  #   untar=True)
-  #
-  # model_dir = pathlib.Path(model_dir)/"saved_model"
+    base_url = 'http://download.tensorflow.org/models/object_detection/'
+    model_file = model_name + '.tar.gz'
+    print(model_file)
+    model_dir = tf.keras.utils.get_file(
+    fname=model_name,
+    origin=base_url + model_file,
+    untar=True)
 
+    model_dir = pathlib.Path(model_dir)/"saved_model"
+    #
     model_dir =  pathlib.Path("train_model/inference_graph/saved_model")
-    model = tf.saved_model.load_v2(str(model_dir))
+    model = tf.saved_model.load(str(model_dir))
     model = model.signatures['serving_default']
 
     return model
@@ -74,7 +74,7 @@ def run_inference_for_single_image(model, image):
   # All outputs are batches tensors.
   # Convert to numpy arrays, and take index [0] to remove the batch dimension.
   # We're only interested in the first num_detections.
-  num_detections = int(output_dict['num_detections'][0])
+  num_detections = int(output_dict.pop('num_detections'))
   output_dict = {key: value[0, :num_detections].numpy()
                  for key, value in output_dict.items()}
   output_dict['num_detections'] = num_detections
@@ -94,6 +94,13 @@ def run_inference_for_single_image(model, image):
 
   return output_dict
 
+def show_result(img):
+    plt.figure()
+    plt.imshow(img)
+    # plt.colorbar()
+    plt.grid(False)
+    plt.show()
+
 def show_inference(model, image_path):
   # the array based representation of the image will be used later in order to prepare the
   # result image with boxes and labels on it.
@@ -109,11 +116,13 @@ def show_inference(model, image_path):
       category_index,
       instance_masks=output_dict.get('detection_masks_reframed', None),
       use_normalized_coordinates=True,
-      line_thickness=8)
+      line_thickness=1)
 
   img = Image.fromarray(image_np)
   img.show()
   # display(Image.fromarray(image_np))
+  # plt.imshow(img)
+  # show_result(img)
 
-for image_path in TEST_IMAGE_PATHS[:2]:
+for image_path in TEST_IMAGE_PATHS[2:4]:
   show_inference(detection_model, image_path)

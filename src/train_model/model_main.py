@@ -60,7 +60,7 @@ FLAGS = flags.FLAGS
 
 def main(unused_argv):
   model_dir = "training/"
-  pipeline_config = '../../data/faces/faster_rcnn_inception_v2_coco_faces.config'
+  pipeline_config = 'faster_rcnn_inception_v2_coco_faces.config'
   FLAGS.alsologtostderr=True
 
   flags.mark_flag_as_required('model_dir')

@@ -208,6 +208,7 @@ def prepare_dataset():
         if (i + train_size + validation_size) % 100 == 0:
             print("Progress: {}".format((i + train_size + validation_size) / total_generation_size))
 
+
 def plot_img(img):
     plt.imshow(img, cmap='gray')
     plt.show()
