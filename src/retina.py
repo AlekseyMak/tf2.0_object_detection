@@ -25,15 +25,15 @@ utils_ops.tf = tf.compat.v1
 tf.gfile = tf.io.gfile
 
 def load_model(model_name):
-    base_url = 'http://download.tensorflow.org/models/object_detection/'
-    model_file = model_name + '.tar.gz'
-    print(model_file)
-    model_dir = tf.keras.utils.get_file(
-    fname=model_name,
-    origin=base_url + model_file,
-    untar=True)
-
-    model_dir = pathlib.Path(model_dir)/"saved_model"
+    # base_url = 'http://download.tensorflow.org/models/object_detection/'
+    # model_file = model_name + '.tar.gz'
+    # print(model_file)
+    # model_dir = tf.keras.utils.get_file(
+    # fname=model_name,
+    # origin=base_url + model_file,
+    # untar=True)
+    #
+    # model_dir = pathlib.Path(model_dir)/"saved_model"
     #
     model_dir =  pathlib.Path("train_model/inference_graph/saved_model")
     model = tf.saved_model.load(str(model_dir))
@@ -124,5 +124,5 @@ def show_inference(model, image_path):
   # plt.imshow(img)
   # show_result(img)
 
-for image_path in TEST_IMAGE_PATHS[2:4]:
+for image_path in TEST_IMAGE_PATHS[0:10]:
   show_inference(detection_model, image_path)

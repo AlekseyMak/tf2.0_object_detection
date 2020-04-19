@@ -1,2 +1,4 @@
 .idea/
 data/
+src/train_model/training/
+src/train_model/inference_graph/

@@ -122,4 +122,4 @@ class ImageGenerator:
             filename = "train_img_{}_q{}.png".format(id, q)
             print("Saving " + filename)
             im.save("img_gen/" + filename)
-        return im, id
+        return im

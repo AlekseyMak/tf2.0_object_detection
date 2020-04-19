@@ -18,5 +18,19 @@ def plot_img(img):
     plt.show()
 
 
-def resize_img(img, width=70, height=70):
+def resize_pil_img(img, width=70, height=70):
     return img.resize((width, height), resample=Image.BOX)
+
+
+def resize_np_img(np_img, width=70, height=70):
+    pil_img = np_to_pil(np_img)
+    return resize_pil_img(pil_img, width, height)
+
+
+def rotate_np_img(np_img, angle):
+    pil_img = np_to_pil(np_img)
+    return pil_img.rotate(angle)
+
+
+def np_to_pil(np_img):
+    return Image.fromarray(np_img.reshape((28,28)))
